@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hiệu Ứng Pháo Hoa 3D - Đa Sắc & Nháy Sáng</title>
+    <title>Hiệu Ứng Ánh Đèn Ấm Áp 3D</title>
     <style>
         body, html {
             margin: 0;
@@ -29,25 +29,25 @@
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            color: rgba(220, 240, 255, 0.85);
+            color: rgba(255, 245, 220, 0.85);
             text-align: center;
             pointer-events: none;
             letter-spacing: 1.5px;
             font-size: 13px;
             text-transform: uppercase;
-            text-shadow: 0 0 12px rgba(100, 200, 255, 0.8);
+            text-shadow: 0 0 12px rgba(255, 220, 150, 0.7);
             z-index: 10;
-            background: rgba(5, 5, 15, 0.65);
+            background: rgba(10, 8, 5, 0.65);
             padding: 10px 22px;
             border-radius: 20px;
-            border: 1px solid rgba(150, 200, 255, 0.25);
+            border: 1px solid rgba(255, 220, 150, 0.25);
         }
     </style>
 </head>
 <body>
 
     <div id="canvas-container"></div>
-    <div class="ui-overlay">Chạm đổi hình (Bùng nổ sáng) • Kéo xoay • Zoom gần xa</div>
+    <div class="ui-overlay">Chạm đổi hình (Nháy sáng ấm) • Kéo xoay • Zoom gần xa</div>
 
     <!-- Thư viện Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -66,7 +66,7 @@
         const particleCount = 2800;
         const geometry = new THREE.BufferGeometry();
 
-        // 1. Hình Cầu Pháo Hoa
+        // 1. Hình Cầu Ánh Sáng
         function generateSpherePositions(count) {
             const pos = new Float32Array(count * 3);
             for (let i = 0; i < count * 3; i += 3) {
@@ -82,7 +82,7 @@
             return pos;
         }
 
-        // 2. Trái Tim Đa Sắc
+        // 2. Trái Tim Ấm Áp
         function generateHeartPositions(count) {
             const pos = new Float32Array(count * 3);
             for (let i = 0; i < count * 3; i += 3) {
@@ -182,7 +182,7 @@
             return pos;
         }
 
-        // 7. Cầu Pháo Hoa Tỏa Sáng Mạnh
+        // 7. Cầu Pháo Hoa Tỏa Sáng
         function generateFireworkPositions(count) {
             const pos = new Float32Array(count * 3);
             for (let i = 0; i < count * 3; i += 3) {
@@ -214,14 +214,14 @@
 
         geometry.setAttribute('position', new THREE.BufferAttribute(currentPositions, 3));
 
-        // Phối màu đa sắc cho các hạt (Màu pháo bông thực thụ: Xanh, Hồng, Vàng, Tím, Trắng)
+        // Phối màu ánh đèn ấm áp (Trắng ấm, Vàng nhẹ ánh đèn, Vàng kem)
         const colors = new Float32Array(particleCount * 3);
         const colorPalette = [
-            new THREE.Color(0xffffff), // Trắng sáng
-            new THREE.Color(0x00ffff), // Xanh cyan
-            new THREE.Color(0xff3399), // Hồng neon
-            new THREE.Color(0xffdd33), // Vàng pháo hoa
-            new THREE.Color(0x9944ff)  // Tím rực rỡ
+            new THREE.Color(0xffffff), // Trắng tinh khiết
+            new THREE.Color(0xfff3e0), // Trắng ấm (Warm white)
+            new THREE.Color(0xffe082), // Vàng nhẹ ánh đèn
+            new THREE.Color(0xffd54f), // Vàng dịu nhẹ
+            new THREE.Color(0xffecb3)  // Vàng kem nhạt
         ];
 
         for (let i = 0; i < particleCount; i++) {
@@ -232,7 +232,7 @@
         }
         geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-        // Tạo Texture lấp lánh
+        // Tạo Texture ánh sáng mềm mại
         function createParticleTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 64;
@@ -241,8 +241,8 @@
             
             const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
             gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-            gradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.8)');
-            gradient.addColorStop(0.7, 'rgba(200, 220, 255, 0.3)');
+            gradient.addColorStop(0.3, 'rgba(255, 240, 200, 0.9)');
+            gradient.addColorStop(0.7, 'rgba(255, 210, 120, 0.3)');
             gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
             
             ctx.fillStyle = gradient;
@@ -263,7 +263,7 @@
         const particleSystem = new THREE.Points(geometry, material);
         scene.add(particleSystem);
 
-        // Biến điều khiển tương tác (Xoay, Zoom & Hiệu ứng nháy sáng bùng nổ)
+        // Biến điều khiển tương tác
         let isDragging = false;
         let previousMousePosition = { x: 0, y: 0 };
         let rotationVelocityX = 0;
@@ -271,7 +271,7 @@
 
         let clickStartTime = 0;
         let startX = 0, startY = 0;
-        let flashProgress = 0; // Dùng để tạo hiệu ứng nháy sáng bùng nổ khi chạm
+        let flashProgress = 0; // Hiệu ứng nháy sáng bùng nổ khi chạm
 
         window.addEventListener('pointerdown', (e) => {
             if (e.pointerType === 'touch' && event.touches && event.touches.length > 1) return;
@@ -302,14 +302,14 @@
             const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
             const duration = Date.now() - clickStartTime;
 
-            // Click/tap nhanh để đổi hình và kích hoạt hiệu ứng bùng nổ nháy sáng
+            // Click/tap nhanh để đổi hình và lóe sáng ấm áp
             if (dist < 10 && duration < 350) {
                 currentShapeIndex = (currentShapeIndex + 1) % shapes.length;
                 const nextShape = shapes[currentShapeIndex];
                 for (let i = 0; i < targetPositions.length; i++) {
                     targetPositions[i] = nextShape[i];
                 }
-                flashProgress = 1.0; // Bật hiệu ứng lóe sáng bùng nổ!
+                flashProgress = 1.0; // Kích hoạt hiệu ứng nháy sáng bùng nổ
             }
         });
 
@@ -319,7 +319,7 @@
             camera.position.z = Math.max(150, Math.min(750, camera.position.z));
         }, { passive: true });
 
-        // Zoom bằng 2 ngón tay (Mobile Pinch-to-Zoom)
+        // Zoom bằng 2 ngón tay (Mobile)
         let initialPinchDistance = 0;
         let initialCameraZ = 400;
 
@@ -361,7 +361,6 @@
             const posArr = posAttr.array;
             let needsUpdate = false;
 
-            // Xử lý hiệu ứng chuyển động đổi hình
             for (let i = 0; i < posArr.length; i++) {
                 const diff = targetPositions[i] - posArr[i];
                 if (Math.abs(diff) > 0.01) {
@@ -373,9 +372,9 @@
                 posAttr.needsUpdate = true;
             }
 
-            // Xử lý hiệu ứng bùng nổ nháy sáng khi vừa chạm đổi hình
+            // Hiệu ứng nháy sáng giảm dần sau khi chạm
             if (flashProgress > 0) {
-                flashProgress -= 0.035; // Giảm dần hiệu ứng sáng
+                flashProgress -= 0.035;
                 if (flashProgress < 0) flashProgress = 0;
             }
 
@@ -386,7 +385,7 @@
                 rotationVelocityX *= 0.93;
             }
 
-            // Kích thước hạt thay đổi linh hoạt kèm theo lóe sáng khi chạm
+            // Kích thước hạt lấp lánh nhẹ và lóe sáng khi chạm đổi hình
             const elapsedTime = clock.getElapsedTime();
             material.size = 8 + (flashProgress * 12) + Math.sin(elapsedTime * 5) * 2;
 
