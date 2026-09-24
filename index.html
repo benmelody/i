@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hiệu Ứng Pháo Hoa Hạt 3D</title>
+    <title>Hiệu Ứng Pháo Hoa Hạt 3D - Tương Tác & Zoom</title>
     <style>
         body, html {
             margin: 0;
@@ -47,7 +47,7 @@
 <body>
 
     <div id="canvas-container"></div>
-    <div class="ui-overlay">Chạm/Click để đổi hình pháo hoa • Kéo vuốt để xoay</div>
+    <div class="ui-overlay">Chạm đổi hình • Kéo xoay • Lăn chuột/Pinch để Zoom</div>
 
     <!-- Thư viện Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -214,7 +214,7 @@
 
         geometry.setAttribute('position', new THREE.BufferAttribute(currentPositions, 3));
 
-        // Tạo Texture màu Vàng Pháo Hoa (Gold Fireworks Texture)
+        // Tạo Texture màu Vàng Pháo Hoa
         function createParticleTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 64;
@@ -222,9 +222,9 @@
             const ctx = canvas.getContext('2d');
             
             const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');      // Tâm trắng sáng chói
-            gradient.addColorStop(0.25, 'rgba(255, 225, 100, 0.95)');// Vàng pháo hoa rực rỡ
-            gradient.addColorStop(0.6, 'rgba(255, 140, 20, 0.45)'); // Cam ánh lửa pháo hoa
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            gradient.addColorStop(0.25, 'rgba(255, 225, 100, 0.95)');
+            gradient.addColorStop(0.6, 'rgba(255, 140, 20, 0.45)');
             gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
             
             ctx.fillStyle = gradient;
@@ -244,7 +244,7 @@
         const particleSystem = new THREE.Points(geometry, material);
         scene.add(particleSystem);
 
-        // Biến điều khiển tương tác kéo vuốt
+        // Biến điều khiển tương tác (Xoay & Zoom)
         let isDragging = false;
         let previousMousePosition = { x: 0, y: 0 };
         let rotationVelocityX = 0;
@@ -253,7 +253,9 @@
         let clickStartTime = 0;
         let startX = 0, startY = 0;
 
+        // Xử lý sự kiện chuột / chạm (Pointer Events)
         window.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'touch' && event.touches && event.touches.length > 1) return;
             isDragging = true;
             previousMousePosition = { x: e.clientX, y: e.clientY };
             clickStartTime = Date.now();
@@ -281,6 +283,7 @@
             const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
             const duration = Date.now() - clickStartTime;
 
+            // Click/tap nhanh để đổi hình
             if (dist < 10 && duration < 350) {
                 currentShapeIndex = (currentShapeIndex + 1) % shapes.length;
                 const nextShape = shapes[currentShapeIndex];
@@ -289,6 +292,40 @@
                 }
             }
         });
+
+        // --- TÍNH NĂNG ZOOM ---
+        // 1. Zoom bằng lăn chuột (Desktop)
+        window.addEventListener('wheel', (e) => {
+            camera.position.z += e.deltaY * 0.4;
+            camera.position.z = Math.max(150, Math.min(750, camera.position.z)); // Giới hạn khoảng cách zoom
+        }, { passive: true });
+
+        // 2. Zoom bằng 2 ngón tay (Mobile Pinch-to-Zoom)
+        let initialPinchDistance = 0;
+        let initialCameraZ = 400;
+
+        window.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                isDragging = false;
+                initialPinchDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                initialCameraZ = camera.position.z;
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2) {
+                const currentDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const factor = initialPinchDistance / currentDistance;
+                camera.position.z = initialCameraZ * factor;
+                camera.position.z = Math.max(150, Math.min(750, camera.position.z));
+            }
+        }, { passive: true });
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -323,7 +360,6 @@
                 rotationVelocityX *= 0.93;
             }
 
-            // Hiệu ứng nhấp nháy ánh lửa pháo hoa
             const elapsedTime = clock.getElapsedTime();
             material.size = 9 + Math.sin(elapsedTime * 5) * 2;
 
