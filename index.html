@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hiệu Ứng Hạt 3D Tương Tác</title>
+    <title>Hiệu Ứng Pháo Hoa Hạt 3D</title>
     <style>
         body, html {
             margin: 0;
@@ -11,7 +11,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #020208;
+            background-color: #030205;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             touch-action: none;
         }
@@ -29,26 +29,27 @@
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            color: rgba(255, 255, 255, 0.75);
+            color: rgba(255, 230, 150, 0.85);
             text-align: center;
             pointer-events: none;
             letter-spacing: 1.5px;
             font-size: 13px;
             text-transform: uppercase;
-            text-shadow: 0 0 10px rgba(120, 200, 255, 0.6);
+            text-shadow: 0 0 12px rgba(255, 180, 50, 0.7);
             z-index: 10;
-            background: rgba(0, 0, 0, 0.4);
-            padding: 10px 20px;
+            background: rgba(10, 5, 2, 0.6);
+            padding: 10px 22px;
             border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 200, 100, 0.2);
         }
     </style>
 </head>
 <body>
 
     <div id="canvas-container"></div>
-    <div class="ui-overlay">Chạm/Click để đổi hình • Kéo vuốt để xoay</div>
+    <div class="ui-overlay">Chạm/Click để đổi hình pháo hoa • Kéo vuốt để xoay</div>
 
+    <!-- Thư viện Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         const container = document.getElementById('canvas-container');
@@ -62,10 +63,10 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        const particleCount = 2200;
+        const particleCount = 2500;
         const geometry = new THREE.BufferGeometry();
 
-        // Định nghĩa các hình dạng 3D khác nhau để chuyển đổi
+        // 1. Hình Cầu Pháo Hoa
         function generateSpherePositions(count) {
             const pos = new Float32Array(count * 3);
             for (let i = 0; i < count * 3; i += 3) {
@@ -81,6 +82,7 @@
             return pos;
         }
 
+        // 2. Trái Tim Vàng
         function generateHeartPositions(count) {
             const pos = new Float32Array(count * 3);
             for (let i = 0; i < count * 3; i += 3) {
@@ -97,6 +99,7 @@
             return pos;
         }
 
+        // 3. Sao Thổ & Vành Đai
         function generateSaturnPositions(count) {
             const pos = new Float32Array(count * 3);
             const ringCount = Math.floor(count * 0.7);
@@ -125,6 +128,7 @@
             return pos;
         }
 
+        // 4. Dải Ngân Hà
         function generateGalaxyPositions(count) {
             const pos = new Float32Array(count * 3);
             const arms = 3;
@@ -140,11 +144,68 @@
             return pos;
         }
 
+        // 5. Vòng Xoắn Kép DNA
+        function generateDoubleHelixPositions(count) {
+            const pos = new Float32Array(count * 3);
+            const turns = 4;
+            const height = 260;
+            const radius = 80;
+            
+            for (let i = 0; i < count; i++) {
+                const isSecondHelix = (i % 2 === 0);
+                const angle = (i / count) * Math.PI * 2 * turns;
+                const y = ((i / count) * height) - (height / 2);
+                const r = isSecondHelix ? radius : -radius;
+                
+                pos[i * 3] = r * Math.cos(angle) + (Math.random() - 0.5) * 10;
+                pos[i * 3 + 1] = y + (Math.random() - 0.5) * 10;
+                pos[i * 3 + 2] = r * Math.sin(angle) + (Math.random() - 0.5) * 10;
+            }
+            return pos;
+        }
+
+        // 6. Nút Thắt Không Gian (Torus Knot)
+        function generateTorusKnotPositions(count) {
+            const pos = new Float32Array(count * 3);
+            for (let i = 0; i < count; i++) {
+                const u = (i / count) * Math.PI * 2 * 2;
+                const v = (i / count) * Math.PI * 2 * 3;
+                const r = 90;
+                const x = r * (1.2 + 0.4 * Math.cos(v)) * Math.cos(u);
+                const y = r * (1.2 + 0.4 * Math.cos(v)) * Math.sin(u);
+                const z = r * 0.4 * Math.sin(v);
+                
+                pos[i * 3] = x + (Math.random() - 0.5) * 10;
+                pos[i * 3 + 1] = y + (Math.random() - 0.5) * 10;
+                pos[i * 3 + 2] = z + (Math.random() - 0.5) * 10;
+            }
+            return pos;
+        }
+
+        // 7. Cầu Pháo Hoa Tỏa Sáng Mạnh
+        function generateFireworkPositions(count) {
+            const pos = new Float32Array(count * 3);
+            for (let i = 0; i < count * 3; i += 3) {
+                const u = Math.random();
+                const v = Math.random();
+                const theta = u * 2.0 * Math.PI;
+                const phi = Math.acos(2.0 * v - 1.0);
+                const r = 200 * Math.pow(Math.random(), 0.4);
+                pos[i] = r * Math.sin(phi) * Math.cos(theta);
+                pos[i + 1] = r * Math.sin(phi) * Math.sin(theta);
+                pos[i + 2] = r * Math.cos(phi);
+            }
+            return pos;
+        }
+
         const shapes = [
             generateSpherePositions(particleCount),
             generateHeartPositions(particleCount),
             generateSaturnPositions(particleCount),
-            generateGalaxyPositions(particleCount)
+            generateGalaxyPositions(particleCount),
+            generateDoubleHelixPositions(particleCount),
+            generateTorusKnotPositions(particleCount),
+            generateFireworkPositions(particleCount)
         ];
 
         let currentShapeIndex = 0;
@@ -153,7 +214,7 @@
 
         geometry.setAttribute('position', new THREE.BufferAttribute(currentPositions, 3));
 
-        // Tạo hiệu ứng lấp lánh (Particle Texture)
+        // Tạo Texture màu Vàng Pháo Hoa (Gold Fireworks Texture)
         function createParticleTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 64;
@@ -161,9 +222,9 @@
             const ctx = canvas.getContext('2d');
             
             const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-            gradient.addColorStop(0.3, 'rgba(120, 200, 255, 0.9)');
-            gradient.addColorStop(0.7, 'rgba(100, 100, 255, 0.3)');
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');      // Tâm trắng sáng chói
+            gradient.addColorStop(0.25, 'rgba(255, 225, 100, 0.95)');// Vàng pháo hoa rực rỡ
+            gradient.addColorStop(0.6, 'rgba(255, 140, 20, 0.45)'); // Cam ánh lửa pháo hoa
             gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
             
             ctx.fillStyle = gradient;
@@ -173,7 +234,7 @@
         }
 
         const material = new THREE.PointsMaterial({
-            size: 8,
+            size: 9,
             map: createParticleTexture(),
             transparent: true,
             blending: THREE.AdditiveBlending,
@@ -183,7 +244,7 @@
         const particleSystem = new THREE.Points(geometry, material);
         scene.add(particleSystem);
 
-        // Biến điều khiển xoay khi kéo vuốt (Drag to rotate)
+        // Biến điều khiển tương tác kéo vuốt
         let isDragging = false;
         let previousMousePosition = { x: 0, y: 0 };
         let rotationVelocityX = 0;
@@ -220,7 +281,6 @@
             const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
             const duration = Date.now() - clickStartTime;
 
-            // Nếu click/tap nhanh (không phải đang kéo xoay) -> Chuyển hình dạng tiếp theo
             if (dist < 10 && duration < 350) {
                 currentShapeIndex = (currentShapeIndex + 1) % shapes.length;
                 const nextShape = shapes[currentShapeIndex];
@@ -241,7 +301,6 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            // Hiệu ứng chuyển đổi hình dáng mượt mà (Morphing)
             const posAttr = geometry.attributes.position;
             const posArr = posAttr.array;
             let needsUpdate = false;
@@ -257,7 +316,6 @@
                 posAttr.needsUpdate = true;
             }
 
-            // Tự động xoay khi không kéo và giữ quán tính mượt
             if (!isDragging) {
                 particleSystem.rotation.y += 0.003 + rotationVelocityY;
                 particleSystem.rotation.x += rotationVelocityX;
@@ -265,9 +323,9 @@
                 rotationVelocityX *= 0.93;
             }
 
-            // Hiệu ứng hạt nhấp nháy sống động
+            // Hiệu ứng nhấp nháy ánh lửa pháo hoa
             const elapsedTime = clock.getElapsedTime();
-            material.size = 8 + Math.sin(elapsedTime * 4) * 1.5;
+            material.size = 9 + Math.sin(elapsedTime * 5) * 2;
 
             renderer.render(scene, camera);
         }
