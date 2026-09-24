@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hiệu Ứng Lấp Lánh 3D</title>
+    <title>Hiệu Ứng Hạt 3D Tương Tác</title>
     <style>
         body, html {
             margin: 0;
@@ -11,8 +11,9 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #03030c;
+            background-color: #020208;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
         }
 
         #canvas-container {
@@ -28,30 +29,31 @@
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(255, 255, 255, 0.75);
             text-align: center;
             pointer-events: none;
-            letter-spacing: 2px;
-            font-size: 14px;
+            letter-spacing: 1.5px;
+            font-size: 13px;
             text-transform: uppercase;
-            text-shadow: 0 0 10px rgba(100, 200, 255, 0.5);
+            text-shadow: 0 0 10px rgba(120, 200, 255, 0.6);
             z-index: 10;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
     </style>
 </head>
 <body>
 
     <div id="canvas-container"></div>
-    <div class="ui-overlay">Di chuyển chuột hoặc nghiêng thiết bị để xoay</div>
+    <div class="ui-overlay">Chạm/Click để đổi hình • Kéo vuốt để xoay</div>
 
-    <!-- Nhúng thư viện Three.js từ CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
     <script>
-        // Khởi tạo Scene, Camera và Renderer
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        
+
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.z = 400;
 
@@ -60,30 +62,98 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        // Tạo hệ thống hạt lấp lánh (Particles)
-        const particleCount = 1200;
+        const particleCount = 2200;
         const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(particleCount * 3);
-        const scales = new Float32Array(particleCount);
 
-        for (let i = 0; i < particleCount * 3; i += 3) {
-            // Phân bố các hạt theo hình cầu bán kính 250
-            const u = Math.random();
-            const v = Math.random();
-            const theta = u * 2.0 * Math.PI;
-            const phi = Math.acos(2.0 * v - 1.0);
-            const r = 250 * Math.cbrt(Math.random());
-
-            positions[i] = r * Math.sin(phi) * Math.cos(theta);
-            positions[i + 1] = r * Math.sin(phi) * Math.sin(theta);
-            positions[i + 2] = r * Math.cos(phi);
-
-            scales[i / 3] = Math.random();
+        // Định nghĩa các hình dạng 3D khác nhau để chuyển đổi
+        function generateSpherePositions(count) {
+            const pos = new Float32Array(count * 3);
+            for (let i = 0; i < count * 3; i += 3) {
+                const u = Math.random();
+                const v = Math.random();
+                const theta = u * 2.0 * Math.PI;
+                const phi = Math.acos(2.0 * v - 1.0);
+                const r = 180 * Math.cbrt(Math.random());
+                pos[i] = r * Math.sin(phi) * Math.cos(theta);
+                pos[i + 1] = r * Math.sin(phi) * Math.sin(theta);
+                pos[i + 2] = r * Math.cos(phi);
+            }
+            return pos;
         }
 
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        function generateHeartPositions(count) {
+            const pos = new Float32Array(count * 3);
+            for (let i = 0; i < count * 3; i += 3) {
+                const t = Math.random() * Math.PI * 2;
+                const x = 16 * Math.pow(Math.sin(t), 3);
+                const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+                const z = (Math.random() - 0.5) * 40;
+                
+                const scale = 11;
+                pos[i] = x * scale + (Math.random() - 0.5) * 12;
+                pos[i + 1] = y * scale + (Math.random() - 0.5) * 12;
+                pos[i + 2] = z + (Math.random() - 0.5) * 12;
+            }
+            return pos;
+        }
 
-        // Tạo Texture hình tròn mềm mại cho hạt sáng
+        function generateSaturnPositions(count) {
+            const pos = new Float32Array(count * 3);
+            const ringCount = Math.floor(count * 0.7);
+            const sphereCount = count - ringCount;
+
+            let idx = 0;
+            for (let i = 0; i < sphereCount; i++) {
+                const u = Math.random();
+                const v = Math.random();
+                const theta = u * 2.0 * Math.PI;
+                const phi = Math.acos(2.0 * v - 1.0);
+                const r = 75 * Math.cbrt(Math.random());
+                pos[idx] = r * Math.sin(phi) * Math.cos(theta);
+                pos[idx + 1] = r * Math.sin(phi) * Math.sin(theta);
+                pos[idx + 2] = r * Math.cos(phi);
+                idx += 3;
+            }
+            for (let i = 0; i < ringCount; i++) {
+                const r = 110 + Math.random() * 120;
+                const theta = Math.random() * Math.PI * 2;
+                pos[idx] = r * Math.cos(theta);
+                pos[idx + 1] = (Math.random() - 0.5) * 8;
+                pos[idx + 2] = r * Math.sin(theta);
+                idx += 3;
+            }
+            return pos;
+        }
+
+        function generateGalaxyPositions(count) {
+            const pos = new Float32Array(count * 3);
+            const arms = 3;
+            for (let i = 0; i < count * 3; i += 3) {
+                const r = Math.random() * 210;
+                const arm = (i / 3) % arms;
+                const theta = (arm * 2 * Math.PI / arms) + (r * 0.005) + (Math.random() - 0.5) * 0.25;
+                
+                pos[i] = r * Math.cos(theta);
+                pos[i + 1] = (Math.random() - 0.5) * 25 * (1 - r/210);
+                pos[i + 2] = r * Math.sin(theta);
+            }
+            return pos;
+        }
+
+        const shapes = [
+            generateSpherePositions(particleCount),
+            generateHeartPositions(particleCount),
+            generateSaturnPositions(particleCount),
+            generateGalaxyPositions(particleCount)
+        ];
+
+        let currentShapeIndex = 0;
+        const currentPositions = new Float32Array(shapes[0]);
+        const targetPositions = new Float32Array(shapes[0]);
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(currentPositions, 3));
+
+        // Tạo hiệu ứng lấp lánh (Particle Texture)
         function createParticleTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 64;
@@ -92,7 +162,8 @@
             
             const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
             gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-            gradient.addColorStop(0.3, 'rgba(100, 200, 255, 0.8)');
+            gradient.addColorStop(0.3, 'rgba(120, 200, 255, 0.9)');
+            gradient.addColorStop(0.7, 'rgba(100, 100, 255, 0.3)');
             gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
             
             ctx.fillStyle = gradient;
@@ -112,82 +183,91 @@
         const particleSystem = new THREE.Points(geometry, material);
         scene.add(particleSystem);
 
-        // Tạo các đường nối lấp lánh giữa các hạt gần nhau
-        const lineMaterial = new THREE.LineBasicMaterial({
-            color: 0x4488ff,
-            transparent: true,
-            opacity: 0.15,
-            blending: THREE.AdditiveBlending
+        // Biến điều khiển xoay khi kéo vuốt (Drag to rotate)
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let rotationVelocityX = 0;
+        let rotationVelocityY = 0;
+
+        let clickStartTime = 0;
+        let startX = 0, startY = 0;
+
+        window.addEventListener('pointerdown', (e) => {
+            isDragging = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+            clickStartTime = Date.now();
+            startX = e.clientX;
+            startY = e.clientY;
         });
 
-        const lineGeometry = new THREE.BufferGeometry();
-        const linesMesh = new THREE.LineSegments(lineGeometry, lineMaterial);
-        scene.add(linesMesh);
+        window.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
 
-        // Xử lý tương tác chuột và cảm biến thiết bị (Mobile)
-        let mouseX = 0, mouseY = 0;
-        let targetX = 0, targetY = 0;
-        let windowHalfX = window.innerWidth / 2;
-        let windowHalfY = window.innerHeight / 2;
+            const deltaX = e.clientX - previousMousePosition.x;
+            const deltaY = e.clientY - previousMousePosition.y;
 
-        document.addEventListener('mousemove', (event) => {
-            mouseX = (event.clientX - windowHalfX);
-            mouseY = (event.clientY - windowHalfY);
+            particleSystem.rotation.y += deltaX * 0.008;
+            particleSystem.rotation.x += deltaY * 0.008;
+
+            rotationVelocityY = deltaX * 0.008;
+            rotationVelocityX = deltaY * 0.008;
+
+            previousMousePosition = { x: e.clientX, y: e.clientY };
         });
 
-        // Hỗ trợ cảm biến xoay trên điện thoại
-        if (window.DeviceOrientationEvent) {
-            window.addEventListener('deviceorientation', (event) => {
-                if (event.gamma !== null && event.beta !== null) {
-                    mouseX = event.gamma * 10;
-                    mouseY = event.beta * 10;
+        window.addEventListener('pointerup', (e) => {
+            isDragging = false;
+            const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
+            const duration = Date.now() - clickStartTime;
+
+            // Nếu click/tap nhanh (không phải đang kéo xoay) -> Chuyển hình dạng tiếp theo
+            if (dist < 10 && duration < 350) {
+                currentShapeIndex = (currentShapeIndex + 1) % shapes.length;
+                const nextShape = shapes[currentShapeIndex];
+                for (let i = 0; i < targetPositions.length; i++) {
+                    targetPositions[i] = nextShape[i];
                 }
-            });
-        }
+            }
+        });
 
         window.addEventListener('resize', () => {
-            windowHalfX = window.innerWidth / 2;
-            windowHalfY = window.innerHeight / 2;
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Vòng lặp chuyển động mượt mà (Animation Loop)
         const clock = new THREE.Clock();
 
         function animate() {
             requestAnimationFrame(animate);
 
-            const elapsedTime = clock.getElapsedTime();
+            // Hiệu ứng chuyển đổi hình dáng mượt mà (Morphing)
+            const posAttr = geometry.attributes.position;
+            const posArr = posAttr.array;
+            let needsUpdate = false;
 
-            // Hiệu ứng dịch chuyển camera mượt theo vị trí chuột
-            targetX = mouseX * 0.001;
-            targetY = mouseY * 0.001;
-
-            particleSystem.rotation.y += 0.002 + (targetX - particleSystem.rotation.y) * 0.05;
-            particleSystem.rotation.x += 0.001 + (targetY - particleSystem.rotation.x) * 0.05;
-            
-            linesMesh.rotation.y = particleSystem.rotation.y;
-            linesMesh.rotation.x = particleSystem.rotation.x;
-
-            // Hiệu ứng lấp lánh động thay đổi kích thước hạt theo thời gian
-            const positionsAttr = geometry.attributes.position;
-            const count = positionsAttr.count;
-            
-            // Cập nhật các đường nối ngẫu nhiên dựa trên khoảng cách
-            const linePositions = [];
-            const posArray = positionsAttr.array;
-            
-            // Xoay nhẹ các điểm để tạo cảm giác sống động
-            for(let i = 0; i < count; i++) {
-                let x = posArray[i * 3];
-                let y = posArray[i * 3 + 1];
-                let z = posArray[i * 3 + 2];
-                
-                // Hiệu ứng thở nhẹ cho khối hình
-                // (Có thể tùy chỉnh thêm nếu muốn các hạt bơi lội độc lập)
+            for (let i = 0; i < posArr.length; i++) {
+                const diff = targetPositions[i] - posArr[i];
+                if (Math.abs(diff) > 0.01) {
+                    posArr[i] += diff * 0.07;
+                    needsUpdate = true;
+                }
             }
+            if (needsUpdate) {
+                posAttr.needsUpdate = true;
+            }
+
+            // Tự động xoay khi không kéo và giữ quán tính mượt
+            if (!isDragging) {
+                particleSystem.rotation.y += 0.003 + rotationVelocityY;
+                particleSystem.rotation.x += rotationVelocityX;
+                rotationVelocityY *= 0.93;
+                rotationVelocityX *= 0.93;
+            }
+
+            // Hiệu ứng hạt nhấp nháy sống động
+            const elapsedTime = clock.getElapsedTime();
+            material.size = 8 + Math.sin(elapsedTime * 4) * 1.5;
 
             renderer.render(scene, camera);
         }
