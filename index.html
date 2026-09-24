@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hiệu Ứng Phép Thuật Ánh Đèn 3D</title>
+    <title>Hiệu Ứng Sợi Dây Ánh Sáng 3D - Magic Lines</title>
     <style>
         body, html {
             margin: 0;
@@ -47,7 +47,7 @@
 <body>
 
     <div id="canvas-container"></div>
-    <div class="ui-overlay">Chạm để niệm phép đổi hình • Kéo để xoay • Zoom gần xa</div>
+    <div class="ui-overlay">Kéo để xoay • Chạm đổi hình (Sợi dây sáng) • Zoom gần xa</div>
 
     <!-- Thư viện Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -63,152 +63,126 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        const particleCount = 3200;
-        const geometry = new THREE.BufferGeometry();
+        // Tạo các hình dạng bằng DẢI ĐƯỜNG DÂY LIÊN TỤC (Lines)
+        const pointsPerStrand = 350;
+        const strandCount = 14; // Số lượng sợi dây quấn quýt
 
-        // Các hình dạng quỹ đạo phép thuật
-        function generateDualHelixPositions(count) {
-            const pos = new Float32Array(count * 3);
-            const turns = 5;
-            const height = 280;
-            const radius = 100;
-            for (let i = 0; i < count; i++) {
-                const t = (i / count) * Math.PI * 2 * turns;
-                const isSecond = (i % 2 === 0);
-                const r = isSecond ? radius : -radius;
-                pos[i * 3] = r * Math.cos(t) + (Math.random() - 0.5) * 6;
-                pos[i * 3 + 1] = ((i / count) * height) - (height / 2) + (Math.random() - 0.5) * 6;
-                pos[i * 3 + 2] = r * Math.sin(t) + (Math.random() - 0.5) * 6;
+        function generateStrands(shapeType) {
+            const allStrands = [];
+            for (let s = 0; s < strandCount; s++) {
+                const strandPoints = [];
+                const offsetAngle = (s / strandCount) * Math.PI * 2;
+
+                for (let i = 0; i < pointsPerStrand; i++) {
+                    const progress = i / pointsPerStrand;
+                    let x = 0, y = 0, z = 0;
+
+                    if (shapeType === 'helix') {
+                        // Vòng xoắn kép (Dual Helix đúng chuẩn video TikTok)
+                        const turns = 4;
+                        const height = 280;
+                        const radius = 90;
+                        const t = progress * Math.PI * 2 * turns + offsetAngle;
+                        const isSecond = (s % 2 === 0);
+                        const r = isSecond ? radius : -radius;
+                        x = r * Math.cos(t);
+                        y = (progress * height) - (height / 2);
+                        z = r * Math.sin(t);
+                    } else if (shapeType === 'lissajous') {
+                        // Nút thắt không gian
+                        const t = progress * Math.PI * 4 + offsetAngle;
+                        const scale = 120;
+                        x = scale * Math.sin(3 * t + Math.PI / 4);
+                        y = scale * Math.sin(2 * t);
+                        z = scale * Math.cos(3 * t);
+                    } else if (shapeType === 'heart') {
+                        // Trái tim lụa sáng
+                        const t = progress * Math.PI * 2 + offsetAngle;
+                        const hx = 16 * Math.pow(Math.sin(t), 3);
+                        const hy = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+                        const scale = 11;
+                        x = hx * scale;
+                        y = hy * scale;
+                        z = (s - strandCount/2) * 6;
+                    } else if (shapeType === 'torusKnot') {
+                        // Vòng xoắn ốc lò xo
+                        const u = progress * Math.PI * 2 * 2 + offsetAngle;
+                        const v = progress * Math.PI * 2 * 3;
+                        const r = 90;
+                        x = r * (1.2 + 0.4 * Math.cos(v)) * Math.cos(u);
+                        y = r * (1.2 + 0.4 * Math.cos(v)) * Math.sin(u);
+                        z = r * 0.4 * Math.sin(v);
+                    } else if (shapeType === 'sphere') {
+                        // Quả cầu ánh sáng
+                        const theta = progress * Math.PI * 2 + offsetAngle;
+                        const phi = progress * Math.PI;
+                        const r = 150;
+                        x = r * Math.sin(phi) * Math.cos(theta);
+                        y = r * Math.sin(phi) * Math.sin(theta);
+                        z = r * Math.cos(phi);
+                    }
+
+                    strandPoints.push(new THREE.Vector3(x, y, z));
+                }
+                allStrands.push(strandPoints);
             }
-            return pos;
+            return allStrands;
         }
 
-        function generateLissajousPositions(count) {
-            const pos = new Float32Array(count * 3);
-            for (let i = 0; i < count; i++) {
-                const t = (i / count) * Math.PI * 4;
-                const scale = 130;
-                pos[i * 3] = scale * Math.sin(3 * t + Math.PI / 4) + (Math.random() - 0.5) * 6;
-                pos[i * 3 + 1] = scale * Math.sin(2 * t) + (Math.random() - 0.5) * 6;
-                pos[i * 3 + 2] = scale * Math.cos(3 * t) + (Math.random() - 0.5) * 6;
+        const shapeTypes = ['helix', 'lissajous', 'heart', 'torusKnot', 'sphere'];
+        let currentShapeIdx = 0;
+
+        const lineGroup = new THREE.Group();
+        scene.add(lineGroup);
+
+        let currentStrandsData = generateStrands(shapeTypes[0]);
+        let targetStrandsData = generateStrands(shapeTypes[1]);
+        const lineMeshes = [];
+
+        function buildLines() {
+            while(lineGroup.children.length > 0){ 
+                lineGroup.remove(lineGroup.children[0]); 
             }
-            return pos;
-        }
+            lineMeshes.length = 0;
 
-        function generateHeartPositions(count) {
-            const pos = new Float32Array(count * 3);
-            for (let i = 0; i < count; i++) {
-                const t = (i / count) * Math.PI * 2;
-                const x = 16 * Math.pow(Math.sin(t), 3);
-                const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
-                const scale = 12;
-                pos[i * 3] = x * scale + (Math.random() - 0.5) * 8;
-                pos[i * 3 + 1] = y * scale + (Math.random() - 0.5) * 8;
-                pos[i * 3 + 2] = (Math.random() - 0.5) * 50;
+            for (let s = 0; s < strandCount; s++) {
+                const geometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(pointsPerStrand * 3);
+                
+                for (let i = 0; i < pointsPerStrand; i++) {
+                    const pt = currentStrandsData[s][i];
+                    positions[i * 3] = pt.x;
+                    positions[i * 3 + 1] = pt.y;
+                    positions[i * 3 + 2] = pt.z;
+                }
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+                // Chất liệu sợi dây ánh sáng ấm áp
+                const material = new THREE.LineBasicMaterial({
+                    color: s % 2 === 0 ? 0xfff5e6 : 0xffd54f,
+                    transparent: true,
+                    opacity: 0.85,
+                    blending: THREE.AdditiveBlending
+                });
+
+                const line = new THREE.Line(geometry, material);
+                lineGroup.add(line);
+                lineMeshes.push({ line, geometry, strandIndex: s });
             }
-            return pos;
         }
 
-        function generateTorusKnotPositions(count) {
-            const pos = new Float32Array(count * 3);
-            for (let i = 0; i < count; i++) {
-                const u = (i / count) * Math.PI * 2 * 2;
-                const v = (i / count) * Math.PI * 2 * 3;
-                const r = 100;
-                pos[i * 3] = r * (1.2 + 0.4 * Math.cos(v)) * Math.cos(u) + (Math.random() - 0.5) * 6;
-                pos[i * 3 + 1] = r * (1.2 + 0.4 * Math.cos(v)) * Math.sin(u) + (Math.random() - 0.5) * 6;
-                pos[i * 3 + 2] = r * 0.4 * Math.sin(v) + (Math.random() - 0.5) * 6;
-            }
-            return pos;
-        }
+        buildLines();
 
-        function generateMagicSpherePositions(count) {
-            const pos = new Float32Array(count * 3);
-            for (let i = 0; i < count * 3; i += 3) {
-                const u = Math.random();
-                const v = Math.random();
-                const theta = u * 2.0 * Math.PI;
-                const phi = Math.acos(2.0 * v - 1.0);
-                const r = 160 * Math.cbrt(Math.random());
-                pos[i] = r * Math.sin(phi) * Math.cos(theta);
-                pos[i + 1] = r * Math.sin(phi) * Math.sin(theta);
-                pos[i + 2] = r * Math.cos(phi);
-            }
-            return pos;
-        }
+        let isMorphing = false;
+        let morphProgress = 1.0;
 
-        const shapes = [
-            generateDualHelixPositions(particleCount),
-            generateLissajousPositions(particleCount),
-            generateHeartPositions(particleCount),
-            generateTorusKnotPositions(particleCount),
-            generateMagicSpherePositions(particleCount)
-        ];
-
-        let currentShapeIndex = 0;
-        const currentPositions = new Float32Array(shapes[0]);
-        const targetPositions = new Float32Array(shapes[0]);
-        // Lưu trữ độ dịch chuyển bùng nổ phép thuật cho từng hạt
-        const burstOffsets = new Float32Array(particleCount * 3);
-
-        geometry.setAttribute('position', new THREE.BufferAttribute(currentPositions, 3));
-
-        // Phối màu ánh đèn phép thuật (Trắng tinh khiết, Vàng ấm, Vàng kem)
-        const colors = new Float32Array(particleCount * 3);
-        const colorPalette = [
-            new THREE.Color(0xffffff),
-            new THREE.Color(0xfff6e0),
-            new THREE.Color(0xffe082),
-            new THREE.Color(0xffd54f)
-        ];
-
-        for (let i = 0; i < particleCount; i++) {
-            const col = colorPalette[Math.floor(Math.random() * colorPalette.length)];
-            colors[i * 3] = col.r;
-            colors[i * 3 + 1] = col.g;
-            colors[i * 3 + 2] = col.b;
-        }
-        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-        function createParticleTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 64;
-            canvas.height = 64;
-            const ctx = canvas.getContext('2d');
-            
-            const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-            gradient.addColorStop(0.3, 'rgba(255, 240, 200, 0.95)');
-            gradient.addColorStop(0.7, 'rgba(255, 210, 120, 0.4)');
-            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, 64, 64);
-            
-            return new THREE.CanvasTexture(canvas);
-        }
-
-        const material = new THREE.PointsMaterial({
-            size: 8,
-            vertexColors: true,
-            map: createParticleTexture(),
-            transparent: true,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false
-        });
-
-        const particleSystem = new THREE.Points(geometry, material);
-        scene.add(particleSystem);
-
-        // Biến tương tác
+        // Tương tác kéo xoay & click đổi hình
         let isDragging = false;
         let previousMousePosition = { x: 0, y: 0 };
         let rotationVelocityX = 0;
         let rotationVelocityY = 0;
-
         let clickStartTime = 0;
         let startX = 0, startY = 0;
-        let flashProgress = 0;
 
         window.addEventListener('pointerdown', (e) => {
             if (e.pointerType === 'touch' && event.touches && event.touches.length > 1) return;
@@ -221,13 +195,11 @@
 
         window.addEventListener('pointermove', (e) => {
             if (!isDragging) return;
-
             const deltaX = e.clientX - previousMousePosition.x;
             const deltaY = e.clientY - previousMousePosition.y;
 
-            particleSystem.rotation.y += deltaX * 0.008;
-            particleSystem.rotation.x += deltaY * 0.008;
-
+            lineGroup.rotation.y += deltaX * 0.008;
+            lineGroup.rotation.x += deltaY * 0.008;
             rotationVelocityY = deltaX * 0.008;
             rotationVelocityX = deltaY * 0.008;
 
@@ -239,16 +211,12 @@
             const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
             const duration = Date.now() - clickStartTime;
 
-            // Click/tap nhanh: Kích hoạt phép thuật đổi hình & bùng nổ hạt
             if (dist < 10 && duration < 350) {
-                currentShapeIndex = (currentShapeIndex + 1) % shapes.length;
-                const nextShape = shapes[currentShapeIndex];
-                for (let i = 0; i < targetPositions.length; i++) {
-                    targetPositions[i] = nextShape[i];
-                    // Tạo một lực đẩy ngẫu nhiên hướng ra ngoài như vụ nổ phép thuật
-                    burstOffsets[i] = (Math.random() - 0.5) * 180;
-                }
-                flashProgress = 1.0;
+                currentShapeIdx = (currentShapeIdx + 1) % shapeTypes.length;
+                currentStrandsData = JSON.parse(JSON.stringify(targetStrandsData));
+                targetStrandsData = generateStrands(shapeTypes[currentShapeIdx]);
+                morphProgress = 0.0;
+                isMorphing = true;
             }
         });
 
@@ -264,47 +232,42 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        const clock = new THREE.Clock();
-
         function animate() {
             requestAnimationFrame(animate);
 
-            const posAttr = geometry.attributes.position;
-            const posArr = posAttr.array;
-            let needsUpdate = false;
+            // Hiệu ứng biến hình mượt mà giữa các sợi dây
+            if (isMorphing) {
+                morphProgress += 0.04;
+                if (morphProgress >= 1.0) {
+                    morphProgress = 1.0;
+                    isMorphing = false;
+                    currentStrandsData = JSON.parse(JSON.stringify(targetStrandsData));
+                }
 
-            // Hiệu ứng biến hình kết hợp lực bùng nổ phép thuật
-            for (let i = 0; i < posArr.length; i++) {
-                // Giảm dần độ lệch bùng nổ theo thời gian để hạt tự động hút về hình dáng chính xác
-                burstOffsets[i] *= 0.92;
+                for (let m = 0; m < lineMeshes.length; m++) {
+                    const { geometry, strandIndex } = lineMeshes[m];
+                    const posAttr = geometry.attributes.position;
+                    const arr = posAttr.array;
 
-                const targetWithBurst = targetPositions[i] + burstOffsets[i];
-                const diff = targetWithBurst - posArr[i];
-                if (Math.abs(diff) > 0.01) {
-                    posArr[i] += diff * 0.08;
-                    needsUpdate = true;
+                    for (let i = 0; i < pointsPerStrand; i++) {
+                        const startPt = currentStrandsData[strandIndex][i];
+                        const targetPt = targetStrandsData[strandIndex][i];
+
+                        arr[i * 3]     = startPt.x + (targetPt.x - startPt.x) * morphProgress;
+                        arr[i * 3 + 1] = startPt.y + (targetPt.y - startPt.y) * morphProgress;
+                        arr[i * 3 + 2] = startPt.z + (targetPt.z - startPt.z) * morphProgress;
+                    }
+                    posAttr.needsUpdate = true;
                 }
             }
-            if (needsUpdate) {
-                posAttr.needsUpdate = true;
-            }
 
-            if (flashProgress > 0) {
-                flashProgress -= 0.03;
-                if (flashProgress < 0) flashProgress = 0;
-            }
-
-            // Đứng yên hoàn toàn khi không chạm/không kéo
+            // Đứng yên hoàn toàn khi không kéo xoay
             if (!isDragging) {
-                rotationVelocityX *= 0.82;
-                rotationVelocityY *= 0.82;
-                particleSystem.rotation.x += rotationVelocityX;
-                particleSystem.rotation.y += rotationVelocityY;
+                rotationVelocityX *= 0.85;
+                rotationVelocityY *= 0.85;
+                lineGroup.rotation.x += rotationVelocityX;
+                lineGroup.rotation.y += rotationVelocityY;
             }
-
-            // Hiệu ứng hạt lóe sáng mạnh mẽ mỗi khi niệm phép đổi hình
-            const elapsedTime = clock.getElapsedTime();
-            material.size = 8 + (flashProgress * 14) + Math.sin(elapsedTime * 6) * 1.5;
 
             renderer.render(scene, camera);
         }
